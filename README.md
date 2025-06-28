@@ -90,30 +90,43 @@ docker compose up -d
 
 Each service uses its own Docker network for isolation and security. Services within the same compose file can communicate using service names as hostnames.
 
-## GitHub Actions Validation
+## GitHub Actions Automated Deployment
 
-This repository includes a simple validation workflow that checks your docker-compose files for syntax errors and configuration issues.
+This repository includes automated deployment workflows using a self-hosted GitHub runner that deploys services directly to your server.
 
 ### Available Workflow
 
-**Docker Compose Validation** (`.github/workflows/deploy-services.yml`)
-- Triggers on: Push to `main`/`master` branch or pull requests
-- Validates docker-compose syntax using `docker compose config`
-- Only checks files that have changed
-- Provides a summary of validation results
+**Docker Services Deploy** (`.github/workflows/deploy-services.yml`)
+- **Push to main/master**: Validates and automatically deploys changed services
+- **Pull Requests**: Validates configurations only (no deployment)
+- Uses modern `docker compose` commands
+- Includes health checks and automatic cleanup
 
 ### How it Works
 
-The workflow uses path filtering to detect which docker-compose files changed:
-- Changes to `n8n/` folder → validates n8n configuration
-- Changes to `nextcloud/` folder → validates Nextcloud configuration  
-- Changes to `sonarqube/` folder → validates SonarQube configuration
-- Changes to `wiki/` folder → validates Wiki configuration
-- Changes to `minecraft/` folder → validates Minecraft configuration
+The workflow automatically detects and deploys only the services that changed:
+- Changes to `n8n/` folder → validates and deploys n8n
+- Changes to `nextcloud/` folder → validates and deploys Nextcloud  
+- Changes to `sonarqube/` folder → validates and deploys SonarQube
+- Changes to `wiki/` folder → validates and deploys Wiki
+- Changes to `minecraft/` folder → validates and deploys Minecraft
 
-### Manual Deployment
+### Deployment Process
 
-Since you run services directly on your server, after the validation passes, you can manually deploy:
+When you push changes to the main branch:
+
+1. **🔍 Detection**: Identifies which services changed
+2. **📋 Validation**: Validates docker-compose syntax
+3. **🚀 Deployment**: Runs on your self-hosted runner:
+   - Stops existing containers
+   - Pulls latest images
+   - Starts updated services
+4. **🩺 Health Check**: Verifies services are running
+5. **🧹 Cleanup**: Removes unused Docker images
+
+### Manual Deployment (Alternative)
+
+You can still manually deploy if needed:
 
 ```bash
 # Navigate to the service directory
@@ -126,8 +139,11 @@ docker compose up -d
 docker compose ps
 ```
 
-This approach gives you:
-- ✅ **Configuration validation** - Catch syntax errors before deploying
-- ✅ **Simple workflow** - No complex deployment automation
-- ✅ **Manual control** - You decide when and how to deploy
-- ✅ **Local network access** - Services accessible on your local network
+### Benefits
+
+- ✅ **Automatic deployment** - Push to main and services deploy automatically
+- ✅ **Selective deployment** - Only changed services are redeployed
+- ✅ **Validation first** - Configurations are validated before deployment
+- ✅ **Health checks** - Ensures services start successfully
+- ✅ **Self-hosted** - Runs directly on your server
+- ✅ **Modern commands** - Uses `docker compose` (not deprecated `docker-compose`)
