@@ -50,8 +50,8 @@ jobs:
         run: |
           echo "🚀 Deploying n8n service..."
           cd n8n
-          docker-compose down || true
-          docker-compose up -d
+          docker compose down || true
+          docker compose up -d
           echo "✅ n8n deployed successfully"
 
   deploy-nextcloud:
@@ -65,8 +65,8 @@ jobs:
         run: |
           echo "🚀 Deploying Nextcloud service..."
           cd nextcloud
-          docker-compose down || true
-          docker-compose up -d
+          docker compose down || true
+          docker compose up -d
           echo "✅ Nextcloud deployed successfully"
 
   deploy-sonarqube:
@@ -80,8 +80,8 @@ jobs:
         run: |
           echo "🚀 Deploying SonarQube service..."
           cd sonarqube
-          docker-compose down || true
-          docker-compose up -d
+          docker compose down || true
+          docker compose up -d
           echo "✅ SonarQube deployed successfully"
 
   deploy-wiki:
@@ -95,8 +95,8 @@ jobs:
         run: |
           echo "🚀 Deploying Wiki service..."
           cd wiki
-          docker-compose down || true
-          docker-compose up -d
+          docker compose down || true
+          docker compose up -d
           echo "✅ Wiki deployed successfully"
 
   deploy-minecraft:
@@ -110,8 +110,8 @@ jobs:
         run: |
           echo "🚀 Deploying Minecraft server..."
           cd minecraft
-          docker-compose down || true
-          docker-compose up -d
+          docker compose down || true
+          docker compose up -d
           echo "✅ Minecraft server deployed successfully"
 
   summary:

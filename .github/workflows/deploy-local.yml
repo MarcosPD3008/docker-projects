@@ -70,7 +70,7 @@ jobs:
           for service in ${{ needs.detect-changes.outputs.services }}; do
             echo "🔍 Validating docker-compose.yml for $service..."
             cd $service
-            docker-compose config
+            docker compose config
             echo "✅ $service docker-compose.yml is valid"
             cd ..
           done
@@ -92,16 +92,16 @@ jobs:
             cd $service
             
             # Check if already running
-            if docker-compose ps | grep -q "Up"; then
+            if docker compose ps | grep -q "Up"; then
               echo "🔄 Service $service is running, recreating..."
-              docker-compose down
+              docker compose down
             fi
             
             # Deploy
-            docker-compose up -d
+            docker compose up -d
             
             echo "✅ $service deployed successfully"
-            docker-compose ps
+            docker compose ps
             
             cd ..
           done
@@ -115,7 +115,7 @@ jobs:
           for service in ${{ needs.detect-changes.outputs.services }}; do
             echo "🔍 $service status:"
             cd $service
-            docker-compose ps
+            docker compose ps
             cd ..
             echo ""
           done

@@ -76,19 +76,19 @@ jobs:
             cd ${{ env.DEPLOY_PATH }}/$service
             
             echo "📋 Current containers for $service:"
-            docker-compose ps || true
+            docker compose ps || true
             
             echo "🔄 Stopping $service..."
-            docker-compose down || true
+            docker compose down || true
             
             echo "📥 Pulling latest images for $service..."
-            docker-compose pull
+            docker compose pull
             
             echo "🚀 Starting $service..."
-            docker-compose up -d
+            docker compose up -d
             
             echo "✅ $service deployment completed"
-            docker-compose ps
+            docker compose ps
             
             cd -
           done
@@ -103,11 +103,11 @@ jobs:
             sleep 10
             
             # Check if containers are running
-            if docker-compose ps | grep -q "Up"; then
+            if docker compose ps | grep -q "Up"; then
               echo "✅ $service is running"
             else
               echo "❌ $service failed to start"
-              docker-compose logs --tail=50
+              docker compose logs --tail=50
               exit 1
             fi
             

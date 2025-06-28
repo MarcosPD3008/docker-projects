@@ -121,19 +121,19 @@ jobs:
             cd ${{ env.DEPLOY_PATH }}/$service
             
             echo "📋 Current containers for $service:"
-            docker-compose ps || true
+            docker compose ps || true
             
             echo "🔄 Stopping $service..."
-            docker-compose down || true
+            docker compose down || true
             
             echo "📥 Pulling latest images for $service..."
-            docker-compose pull
+            docker compose pull
             
             echo "🚀 Starting $service..."
-            docker-compose up -d
+            docker compose up -d
             
             echo "✅ $service deployment completed"
-            docker-compose ps
+            docker compose ps
             
             cd - > /dev/null
           done
@@ -149,13 +149,13 @@ jobs:
               echo "⏳ Health check attempt $attempt/3 for $service..."
               sleep 10
               
-              if docker-compose ps | grep -q "Up"; then
+              if docker compose ps | grep -q "Up"; then
                 echo "✅ $service is healthy"
                 break
               elif [ $attempt -eq 3 ]; then
                 echo "❌ $service failed health check after 3 attempts"
                 echo "📋 Container logs:"
-                docker-compose logs --tail=50
+                docker compose logs --tail=50
                 exit 1
               else
                 echo "⚠️ Attempt $attempt failed, retrying..."
@@ -191,8 +191,8 @@ jobs:
                 echo "🔄 Restoring $service from backup..."
                 cp -r "$LATEST_BACKUP/$service" ${{ env.DEPLOY_PATH }}/
                 cd ${{ env.DEPLOY_PATH }}/$service
-                docker-compose down || true
-                docker-compose up -d
+                docker compose down || true
+                docker compose up -d
                 cd - > /dev/null
               fi
             done

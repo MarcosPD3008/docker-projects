@@ -71,7 +71,7 @@ This repository is a collection of Docker Compose configurations to manage and d
 
 Navigate to the respective service directory and run:
 ```bash
-docker-compose up -d
+docker compose up -d
 ```
 
 ### Access URLs
