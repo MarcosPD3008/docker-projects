@@ -20,6 +20,7 @@ jobs:
       nextcloud: ${{ steps.changes.outputs.nextcloud }}
       sonarqube: ${{ steps.changes.outputs.sonarqube }}
       wiki: ${{ steps.changes.outputs.wiki }}
+      minecraft: ${{ steps.changes.outputs.minecraft }}
     steps:
       - uses: actions/checkout@v4
       
@@ -35,6 +36,8 @@ jobs:
               - 'sonarqube/**'
             wiki:
               - 'wiki/**'
+            minecraft:
+              - 'minecraft/**'
 
   deploy-n8n:
     needs: detect-changes
@@ -96,8 +99,23 @@ jobs:
           docker-compose up -d
           echo "✅ Wiki deployed successfully"
 
+  deploy-minecraft:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.minecraft == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Deploy Minecraft Server
+        run: |
+          echo "🚀 Deploying Minecraft server..."
+          cd minecraft
+          docker-compose down || true
+          docker-compose up -d
+          echo "✅ Minecraft server deployed successfully"
+
   summary:
-    needs: [detect-changes, deploy-n8n, deploy-nextcloud, deploy-sonarqube, deploy-wiki]
+    needs: [detect-changes, deploy-n8n, deploy-nextcloud, deploy-sonarqube, deploy-wiki, deploy-minecraft]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -128,4 +146,10 @@ jobs:
             echo "- ✅ Wiki: Updated and deployed" >> $GITHUB_STEP_SUMMARY
           else
             echo "- ⏭️ Wiki: No changes detected" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          if [ "${{ needs.detect-changes.outputs.minecraft }}" == "true" ]; then
+            echo "- ✅ Minecraft: Updated and deployed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- ⏭️ Minecraft: No changes detected" >> $GITHUB_STEP_SUMMARY
           fi

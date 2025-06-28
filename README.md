@@ -8,6 +8,7 @@ This repository is a collection of Docker Compose configurations to manage and d
 - **Nextcloud**: Configuration to deploy Nextcloud, a powerful and open-source file sharing and collaboration platform
 - **SonarQube**: Configuration for deploying SonarQube, a platform for continuous inspection of code quality
 - **Wiki**: Configuration for setting up a Wiki platform, providing a space for documentation and collaboration
+- **Minecraft**: Modded Minecraft server using Forge for multiplayer gaming
 
 ## Services Overview
 
@@ -54,6 +55,18 @@ This repository is a collection of Docker Compose configurations to manage and d
   - Modern documentation platform
   - Persistent data storage
 
+### Minecraft Server
+- **Location**: `minecraft/docker-compose.yml`
+- **Services**: Minecraft Forge Server
+- **Ports**: 
+  - Game Server: `25565`
+- **Features**:
+  - Minecraft Forge 1.20.1 with Forge version 47.1.3
+  - 10GB RAM allocation for smooth gameplay
+  - Persistent world data storage
+  - EULA automatically accepted
+  - Support for mods (place in `./data/mods` directory)
+
 ## Quick Start
 
 Navigate to the respective service directory and run:
@@ -66,6 +79,7 @@ docker-compose up -d
 - Nextcloud: http://localhost:8081 (HTTP) or https://localhost:8443 (HTTPS)
 - SonarQube: http://localhost:9000
 - Wiki.js: http://localhost:3000
+- Minecraft Server: `localhost:25565` (connect from Minecraft client)
 
 ## Prerequisites
 
@@ -146,6 +160,7 @@ The workflows use path filtering to detect which docker-compose files changed:
 - Changes to `nextcloud/` folder → deploys only Nextcloud  
 - Changes to `sonarqube/` folder → deploys only SonarQube
 - Changes to `wiki/` folder → deploys only Wiki
+- Changes to `minecraft/` folder → deploys only Minecraft Server
 
 ### Benefits of Self-Hosted Runners
 
