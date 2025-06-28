@@ -1,0 +1,131 @@
+name: Deploy Updated Docker Services
+
+on:
+  push:
+    branches: [ main, master ]
+    paths:
+      - '**/docker-compose.yml'
+      - '**/docker-compose.yaml'
+  pull_request:
+    branches: [ main, master ]
+    paths:
+      - '**/docker-compose.yml'
+      - '**/docker-compose.yaml'
+
+jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      n8n: ${{ steps.changes.outputs.n8n }}
+      nextcloud: ${{ steps.changes.outputs.nextcloud }}
+      sonarqube: ${{ steps.changes.outputs.sonarqube }}
+      wiki: ${{ steps.changes.outputs.wiki }}
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: dorny/paths-filter@v2
+        id: changes
+        with:
+          filters: |
+            n8n:
+              - 'n8n/**'
+            nextcloud:
+              - 'nextcloud/**'
+            sonarqube:
+              - 'sonarqube/**'
+            wiki:
+              - 'wiki/**'
+
+  deploy-n8n:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.n8n == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Deploy n8n
+        run: |
+          echo "🚀 Deploying n8n service..."
+          cd n8n
+          docker-compose down || true
+          docker-compose up -d
+          echo "✅ n8n deployed successfully"
+
+  deploy-nextcloud:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.nextcloud == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Deploy Nextcloud
+        run: |
+          echo "🚀 Deploying Nextcloud service..."
+          cd nextcloud
+          docker-compose down || true
+          docker-compose up -d
+          echo "✅ Nextcloud deployed successfully"
+
+  deploy-sonarqube:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.sonarqube == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Deploy SonarQube
+        run: |
+          echo "🚀 Deploying SonarQube service..."
+          cd sonarqube
+          docker-compose down || true
+          docker-compose up -d
+          echo "✅ SonarQube deployed successfully"
+
+  deploy-wiki:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.wiki == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Deploy Wiki
+        run: |
+          echo "🚀 Deploying Wiki service..."
+          cd wiki
+          docker-compose down || true
+          docker-compose up -d
+          echo "✅ Wiki deployed successfully"
+
+  summary:
+    needs: [detect-changes, deploy-n8n, deploy-nextcloud, deploy-sonarqube, deploy-wiki]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deployment Summary
+        run: |
+          echo "## Deployment Summary 📋" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "${{ needs.detect-changes.outputs.n8n }}" == "true" ]; then
+            echo "- ✅ n8n: Updated and deployed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- ⏭️ n8n: No changes detected" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          if [ "${{ needs.detect-changes.outputs.nextcloud }}" == "true" ]; then
+            echo "- ✅ Nextcloud: Updated and deployed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- ⏭️ Nextcloud: No changes detected" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          if [ "${{ needs.detect-changes.outputs.sonarqube }}" == "true" ]; then
+            echo "- ✅ SonarQube: Updated and deployed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- ⏭️ SonarQube: No changes detected" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          if [ "${{ needs.detect-changes.outputs.wiki }}" == "true" ]; then
+            echo "- ✅ Wiki: Updated and deployed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- ⏭️ Wiki: No changes detected" >> $GITHUB_STEP_SUMMARY
+          fi
