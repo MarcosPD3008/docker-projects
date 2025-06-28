@@ -63,7 +63,6 @@ jobs:
           services=$(echo "$services" | sed 's/^ *//')
           echo "services=$services" >> $GITHUB_OUTPUT
           echo "Changed services: '$services'"
-          echo "Services length: ${#services}"
 
   debug:
     needs: detect-changes
@@ -79,65 +78,17 @@ jobs:
           echo "sonarqube: ${{ needs.detect-changes.outputs.sonarqube }}"
           echo "wiki: ${{ needs.detect-changes.outputs.wiki }}"
           echo "minecraft: ${{ needs.detect-changes.outputs.minecraft }}"
-
-  validate-compose:
-    needs: detect-changes
-    if: needs.detect-changes.outputs.changed-services != '' && needs.detect-changes.outputs.changed-services != null
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Validate docker-compose files
-        run: |
-          echo "🔍 Validating Docker Compose configurations..."
-          
-          for service in ${{ needs.detect-changes.outputs.changed-services }}; do
-            echo "📋 Validating $service..."
-            cd $service && docker compose config && cd ..
-          done
-          
-          echo "✅ All configurations are valid!"
-
-  pre-deploy-debug:
-    needs: [detect-changes, validate-compose, debug]
-    if: always()
-    runs-on: ubuntu-latest
-    steps:
-      - name: Debug deploy conditions
-        run: |
-          echo "=== PRE-DEPLOY DEBUG ==="
-          echo "Event name: '${{ github.event_name }}'"
-          echo "Event name check (push): ${{ github.event_name == 'push' }}"
-          echo ""
-          echo "Changed services: '${{ needs.detect-changes.outputs.changed-services }}'"
-          echo "Changed services != '': ${{ needs.detect-changes.outputs.changed-services != '' }}"
-          echo "Changed services != null: ${{ needs.detect-changes.outputs.changed-services != null }}"
-          echo ""
-          echo "Validate-compose result: '${{ needs.validate-compose.result }}'"
-          echo "Validate-compose == success: ${{ needs.validate-compose.result == 'success' }}"
-          echo ""
-          echo "Individual service flags:"
-          echo "  n8n: '${{ needs.detect-changes.outputs.n8n }}'"
-          echo "  nextcloud: '${{ needs.detect-changes.outputs.nextcloud }}'"
-          echo "  sonarqube: '${{ needs.detect-changes.outputs.sonarqube }}'"
-          echo "  wiki: '${{ needs.detect-changes.outputs.wiki }}'"
-          echo "  minecraft: '${{ needs.detect-changes.outputs.minecraft }}'"
-          echo ""
-          echo "=== FINAL CONDITION EVALUATION ==="
-          echo "Condition 1 - Event is push: ${{ github.event_name == 'push' }}"
-          echo "Condition 2 - Changed services not empty: ${{ needs.detect-changes.outputs.changed-services != '' }}"
-          echo "Condition 3 - Changed services not null: ${{ needs.detect-changes.outputs.changed-services != null }}"
-          echo "Condition 4 - Validation successful: ${{ needs.validate-compose.result == 'success' }}"
-          echo ""
-          echo "ALL CONDITIONS MET: ${{ github.event_name == 'push' && needs.detect-changes.outputs.changed-services != '' && needs.detect-changes.outputs.changed-services != null && needs.validate-compose.result == 'success' }}"
+          echo "Deploy condition check: ${{ github.event_name == 'push' && needs.detect-changes.outputs.changed-services != '' }}"
 
   deploy:
-    needs: [detect-changes, validate-compose, debug, pre-deploy-debug]
-    if: github.event_name == 'push' && needs.detect-changes.outputs.changed-services != '' && needs.detect-changes.outputs.changed-services != null && needs.validate-compose.result == 'success'
+    name: Deploy Changed Services
+    needs: detect-changes
+    if: github.event_name == 'push' && needs.detect-changes.outputs.changed-services != ''
     runs-on: self-hosted
     steps:
-      - uses: actions/checkout@v4
-      
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
       - name: Deploy changed services
         run: |
           echo "🚀 Starting deployment of changed services..."
@@ -153,9 +104,6 @@ jobs:
             echo "🔄 Stopping $service..."
             docker compose down || true
             
-            echo "📥 Pulling latest images..."
-            docker compose pull || true
-            
             echo "🚀 Starting $service..."
             docker compose up -d
             
@@ -165,74 +113,5 @@ jobs:
             cd ..
           done
 
-      - name: Health Check
-        run: |
-          echo "🔍 Performing health checks..."
-          sleep 10
-          
-          for service in ${{ needs.detect-changes.outputs.changed-services }}; do
-            echo "🩺 Checking $service health..."
-            cd $service
-            
-            if docker compose ps | grep -q "Up"; then
-              echo "✅ $service is running healthy"
-            else
-              echo "❌ $service health check failed"
-              echo "📋 Container logs:"
-              docker compose logs --tail=20
-              exit 1
-            fi
-            
-            cd ..
-          done
-          
-          echo "✅ All services are healthy!"
-
-      - name: Cleanup
-        if: success()
-        run: |
-          echo "🧹 Cleaning up unused Docker resources..."
-          docker image prune -f || true
-          echo "✅ Cleanup completed"
-
-  summary:
-    needs: [detect-changes, validate-compose, deploy]
-    if: always()
-    runs-on: ubuntu-latest
-    steps:
-      - name: Deployment Summary
-        run: |
-          echo "## Deployment Summary 📋" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          
-          if [ "${{ github.event_name }}" == "pull_request" ]; then
-            echo "🔍 **Pull Request - Validation Only**" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            if [ "${{ needs.validate-compose.result }}" == "success" ]; then
-              echo "✅ All configurations validated successfully!" >> $GITHUB_STEP_SUMMARY
-            else
-              echo "❌ Validation failed - please check configurations" >> $GITHUB_STEP_SUMMARY
-            fi
-          else
-            if [ "${{ needs.deploy.result }}" == "success" ]; then
-              echo "🎉 **Deployment Successful!**" >> $GITHUB_STEP_SUMMARY
-              echo "" >> $GITHUB_STEP_SUMMARY
-              echo "**Deployed Services:**" >> $GITHUB_STEP_SUMMARY
-              for service in ${{ needs.detect-changes.outputs.changed-services }}; do
-                echo "- ✅ **$service**" >> $GITHUB_STEP_SUMMARY
-              done
-            elif [ "${{ needs.deploy.result }}" == "failure" ]; then
-              echo "❌ **Deployment Failed**" >> $GITHUB_STEP_SUMMARY
-              echo "" >> $GITHUB_STEP_SUMMARY
-              echo "**Failed Services:**" >> $GITHUB_STEP_SUMMARY
-              for service in ${{ needs.detect-changes.outputs.changed-services }}; do
-                echo "- ⚠️ **$service**" >> $GITHUB_STEP_SUMMARY
-              done
-              echo "" >> $GITHUB_STEP_SUMMARY
-              echo "Please check the logs above for details." >> $GITHUB_STEP_SUMMARY
-            elif [ "${{ needs.detect-changes.outputs.changed-services }}" == "" ]; then
-              echo "ℹ️ **No Changes Detected**" >> $GITHUB_STEP_SUMMARY
-              echo "" >> $GITHUB_STEP_SUMMARY
-              echo "No docker-compose files were modified." >> $GITHUB_STEP_SUMMARY
-            fi
-          fi
+      - name: Show all running containers
+        run: docker ps
