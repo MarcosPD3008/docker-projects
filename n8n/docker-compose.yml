@@ -7,7 +7,7 @@ services:
       POSTGRES_USER: n8n
       POSTGRES_PASSWORD: n8npass
       POSTGRES_DB: n8ndb
-    volumes:
+    volumes: 
       - postgres-data:/var/lib/postgresql/data
     networks:
       - n8n-net
