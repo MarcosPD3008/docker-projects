@@ -83,7 +83,6 @@ jobs:
   deploy:
     name: Deploy Changed Services
     needs: detect-changes
-    if: github.event_name == 'push' && needs.detect-changes.outputs.changed-services != ''
     runs-on: self-hosted
     steps:
       - name: Checkout repo
