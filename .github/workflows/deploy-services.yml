@@ -1,4 +1,4 @@
-name: Deploy Updated Docker Services
+name: Validate Docker Compose Files
 
 on:
   push:
@@ -39,117 +39,82 @@ jobs:
             minecraft:
               - 'minecraft/**'
 
-  deploy-n8n:
+  validate-compose:
     needs: detect-changes
-    if: needs.detect-changes.outputs.n8n == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       
-      - name: Deploy n8n
+      - name: Validate docker-compose files
         run: |
-          echo "🚀 Deploying n8n service..."
-          cd n8n
-          docker compose down || true
-          docker compose up -d
-          echo "✅ n8n deployed successfully"
-
-  deploy-nextcloud:
-    needs: detect-changes
-    if: needs.detect-changes.outputs.nextcloud == 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Deploy Nextcloud
-        run: |
-          echo "🚀 Deploying Nextcloud service..."
-          cd nextcloud
-          docker compose down || true
-          docker compose up -d
-          echo "✅ Nextcloud deployed successfully"
-
-  deploy-sonarqube:
-    needs: detect-changes
-    if: needs.detect-changes.outputs.sonarqube == 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Deploy SonarQube
-        run: |
-          echo "🚀 Deploying SonarQube service..."
-          cd sonarqube
-          docker compose down || true
-          docker compose up -d
-          echo "✅ SonarQube deployed successfully"
-
-  deploy-wiki:
-    needs: detect-changes
-    if: needs.detect-changes.outputs.wiki == 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Deploy Wiki
-        run: |
-          echo "🚀 Deploying Wiki service..."
-          cd wiki
-          docker compose down || true
-          docker compose up -d
-          echo "✅ Wiki deployed successfully"
-
-  deploy-minecraft:
-    needs: detect-changes
-    if: needs.detect-changes.outputs.minecraft == 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Deploy Minecraft Server
-        run: |
-          echo "🚀 Deploying Minecraft server..."
-          cd minecraft
-          docker compose down || true
-          docker compose up -d
-          echo "✅ Minecraft server deployed successfully"
-
-  summary:
-    needs: [detect-changes, deploy-n8n, deploy-nextcloud, deploy-sonarqube, deploy-wiki, deploy-minecraft]
-    if: always()
-    runs-on: ubuntu-latest
-    steps:
-      - name: Deployment Summary
-        run: |
-          echo "## Deployment Summary 📋" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "� Validating Docker Compose configurations..."
           
           if [ "${{ needs.detect-changes.outputs.n8n }}" == "true" ]; then
-            echo "- ✅ n8n: Updated and deployed" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "- ⏭️ n8n: No changes detected" >> $GITHUB_STEP_SUMMARY
+            echo "📋 Validating n8n..."
+            cd n8n && docker compose config && cd ..
           fi
           
           if [ "${{ needs.detect-changes.outputs.nextcloud }}" == "true" ]; then
-            echo "- ✅ Nextcloud: Updated and deployed" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "- ⏭️ Nextcloud: No changes detected" >> $GITHUB_STEP_SUMMARY
+            echo "� Validating Nextcloud..."
+            cd nextcloud && docker compose config && cd ..
           fi
           
           if [ "${{ needs.detect-changes.outputs.sonarqube }}" == "true" ]; then
-            echo "- ✅ SonarQube: Updated and deployed" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "- ⏭️ SonarQube: No changes detected" >> $GITHUB_STEP_SUMMARY
+            echo "� Validating SonarQube..."
+            cd sonarqube && docker compose config && cd ..
           fi
           
           if [ "${{ needs.detect-changes.outputs.wiki }}" == "true" ]; then
-            echo "- ✅ Wiki: Updated and deployed" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "- ⏭️ Wiki: No changes detected" >> $GITHUB_STEP_SUMMARY
+            echo "� Validating Wiki..."
+            cd wiki && docker compose config && cd ..
           fi
           
           if [ "${{ needs.detect-changes.outputs.minecraft }}" == "true" ]; then
-            echo "- ✅ Minecraft: Updated and deployed" >> $GITHUB_STEP_SUMMARY
+            echo "� Validating Minecraft..."
+            cd minecraft && docker compose config && cd ..
+          fi
+          
+          echo "✅ All configurations are valid!"
+
+  summary:
+    needs: [detect-changes, validate-compose]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validation Summary
+        run: |
+          echo "## Docker Compose Validation Summary 📋" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "${{ needs.validate-compose.result }}" == "success" ]; then
+            echo "✅ **All configurations validated successfully!**" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### Services checked:" >> $GITHUB_STEP_SUMMARY
+            
+            if [ "${{ needs.detect-changes.outputs.n8n }}" == "true" ]; then
+              echo "- ✅ n8n" >> $GITHUB_STEP_SUMMARY
+            fi
+            
+            if [ "${{ needs.detect-changes.outputs.nextcloud }}" == "true" ]; then
+              echo "- ✅ Nextcloud" >> $GITHUB_STEP_SUMMARY
+            fi
+            
+            if [ "${{ needs.detect-changes.outputs.sonarqube }}" == "true" ]; then
+              echo "- ✅ SonarQube" >> $GITHUB_STEP_SUMMARY
+            fi
+            
+            if [ "${{ needs.detect-changes.outputs.wiki }}" == "true" ]; then
+              echo "- ✅ Wiki" >> $GITHUB_STEP_SUMMARY
+            fi
+            
+            if [ "${{ needs.detect-changes.outputs.minecraft }}" == "true" ]; then
+              echo "- ✅ Minecraft" >> $GITHUB_STEP_SUMMARY
+            fi
+            
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "🚀 **Ready to deploy manually with:** \`docker compose up -d\`" >> $GITHUB_STEP_SUMMARY
           else
-            echo "- ⏭️ Minecraft: No changes detected" >> $GITHUB_STEP_SUMMARY
+            echo "❌ **Validation failed!**" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Please check the logs above and fix any configuration issues." >> $GITHUB_STEP_SUMMARY
           fi
