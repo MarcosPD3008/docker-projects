@@ -38,7 +38,7 @@ services:
       - REDIS_PORT=6379
     volumes:
       - n8n-data:/home/node/.n8n
-    networks:
+    networks: 
       - n8n-net
     depends_on:
       - postgres

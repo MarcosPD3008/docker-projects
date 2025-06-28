@@ -24,7 +24,7 @@ jobs:
       changed-services: ${{ steps.list-changes.outputs.services }}
     steps:
       - uses: actions/checkout@v4
-      
+
       - uses: dorny/paths-filter@v2
         id: changes
         with:
@@ -39,33 +39,22 @@ jobs:
               - 'wiki/**'
             minecraft:
               - 'minecraft/**'
-      
+
       - name: List changed services
         id: list-changes
         run: |
           services=""
-          if [ "${{ steps.changes.outputs.n8n }}" == "true" ]; then
-            services="$services n8n"
-          fi
-          if [ "${{ steps.changes.outputs.nextcloud }}" == "true" ]; then
-            services="$services nextcloud"
-          fi
-          if [ "${{ steps.changes.outputs.sonarqube }}" == "true" ]; then
-            services="$services sonarqube"
-          fi
-          if [ "${{ steps.changes.outputs.wiki }}" == "true" ]; then
-            services="$services wiki"
-          fi
-          if [ "${{ steps.changes.outputs.minecraft }}" == "true" ]; then
-            services="$services minecraft"
-          fi
-          # Trim leading whitespace
-          services=$(echo "$services" | sed 's/^ *//')
+          [ "${{ steps.changes.outputs.n8n }}" == "true" ] && services="$services n8n"
+          [ "${{ steps.changes.outputs.nextcloud }}" == "true" ] && services="$services nextcloud"
+          [ "${{ steps.changes.outputs.sonarqube }}" == "true" ] && services="$services sonarqube"
+          [ "${{ steps.changes.outputs.wiki }}" == "true" ] && services="$services wiki"
+          [ "${{ steps.changes.outputs.minecraft }}" == "true" ] && services="$services minecraft"
+          services=$(echo "$services" | sed 's/^ *//') # Trim leading space
           echo "services=$services" >> $GITHUB_OUTPUT
           echo "Changed services: '$services'"
 
   debug:
-    needs: detect-changes
+    needs: detect-changes 
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -78,7 +67,6 @@ jobs:
           echo "sonarqube: ${{ needs.detect-changes.outputs.sonarqube }}"
           echo "wiki: ${{ needs.detect-changes.outputs.wiki }}"
           echo "minecraft: ${{ needs.detect-changes.outputs.minecraft }}"
-          echo "Deploy condition check: ${{ github.event_name == 'push' && needs.detect-changes.outputs.changed-services != '' }}"
 
   deploy:
     name: Deploy Changed Services
@@ -91,24 +79,32 @@ jobs:
       - name: Deploy changed services
         run: |
           echo "🚀 Starting deployment of changed services..."
-          
-          for service in ${{ needs.detect-changes.outputs.changed-services }}; do
+
+          changed_services="${{ needs.detect-changes.outputs.changed-services }}"
+          echo "🔍 Services to deploy: $changed_services"
+
+          if [ -z "$changed_services" ]; then
+            echo "⚠️ No services changed. Skipping deployment."
+            exit 0
+          fi
+
+          for service in $changed_services; do
             echo ""
             echo "📦 Deploying $service..."
-            cd $service
-            
+            cd "$service" || { echo "❌ Failed to enter folder $service"; exit 1; }
+
             echo "📋 Current status:"
             docker compose ps || true
-            
+
             echo "🔄 Stopping $service..."
             docker compose down || true
-            
+
             echo "🚀 Starting $service..."
             docker compose up -d
-            
+
             echo "✅ $service deployment completed"
             docker compose ps
-            
+
             cd ..
           done
 
