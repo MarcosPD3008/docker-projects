@@ -98,8 +98,41 @@ jobs:
           
           echo "✅ All configurations are valid!"
 
-  deploy:
+  pre-deploy-debug:
     needs: [detect-changes, validate-compose, debug]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Debug deploy conditions
+        run: |
+          echo "=== PRE-DEPLOY DEBUG ==="
+          echo "Event name: '${{ github.event_name }}'"
+          echo "Event name check (push): ${{ github.event_name == 'push' }}"
+          echo ""
+          echo "Changed services: '${{ needs.detect-changes.outputs.changed-services }}'"
+          echo "Changed services != '': ${{ needs.detect-changes.outputs.changed-services != '' }}"
+          echo "Changed services != null: ${{ needs.detect-changes.outputs.changed-services != null }}"
+          echo ""
+          echo "Validate-compose result: '${{ needs.validate-compose.result }}'"
+          echo "Validate-compose == success: ${{ needs.validate-compose.result == 'success' }}"
+          echo ""
+          echo "Individual service flags:"
+          echo "  n8n: '${{ needs.detect-changes.outputs.n8n }}'"
+          echo "  nextcloud: '${{ needs.detect-changes.outputs.nextcloud }}'"
+          echo "  sonarqube: '${{ needs.detect-changes.outputs.sonarqube }}'"
+          echo "  wiki: '${{ needs.detect-changes.outputs.wiki }}'"
+          echo "  minecraft: '${{ needs.detect-changes.outputs.minecraft }}'"
+          echo ""
+          echo "=== FINAL CONDITION EVALUATION ==="
+          echo "Condition 1 - Event is push: ${{ github.event_name == 'push' }}"
+          echo "Condition 2 - Changed services not empty: ${{ needs.detect-changes.outputs.changed-services != '' }}"
+          echo "Condition 3 - Changed services not null: ${{ needs.detect-changes.outputs.changed-services != null }}"
+          echo "Condition 4 - Validation successful: ${{ needs.validate-compose.result == 'success' }}"
+          echo ""
+          echo "ALL CONDITIONS MET: ${{ github.event_name == 'push' && needs.detect-changes.outputs.changed-services != '' && needs.detect-changes.outputs.changed-services != null && needs.validate-compose.result == 'success' }}"
+
+  deploy:
+    needs: [detect-changes, validate-compose, debug, pre-deploy-debug]
     if: github.event_name == 'push' && needs.detect-changes.outputs.changed-services != '' && needs.detect-changes.outputs.changed-services != null && needs.validate-compose.result == 'success'
     runs-on: self-hosted
     steps:
