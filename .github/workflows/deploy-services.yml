@@ -59,12 +59,30 @@ jobs:
           if [ "${{ steps.changes.outputs.minecraft }}" == "true" ]; then
             services="$services minecraft"
           fi
+          # Trim leading whitespace
+          services=$(echo "$services" | sed 's/^ *//')
           echo "services=$services" >> $GITHUB_OUTPUT
-          echo "Changed services: $services"
+          echo "Changed services: '$services'"
+          echo "Services length: ${#services}"
+
+  debug:
+    needs: detect-changes
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Debug output
+        run: |
+          echo "Event name: ${{ github.event_name }}"
+          echo "Changed services: '${{ needs.detect-changes.outputs.changed-services }}'"
+          echo "n8n: ${{ needs.detect-changes.outputs.n8n }}"
+          echo "nextcloud: ${{ needs.detect-changes.outputs.nextcloud }}"
+          echo "sonarqube: ${{ needs.detect-changes.outputs.sonarqube }}"
+          echo "wiki: ${{ needs.detect-changes.outputs.wiki }}"
+          echo "minecraft: ${{ needs.detect-changes.outputs.minecraft }}"
 
   validate-compose:
     needs: detect-changes
-    if: needs.detect-changes.outputs.changed-services != ''
+    if: needs.detect-changes.outputs.changed-services != '' && needs.detect-changes.outputs.changed-services != null
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -81,8 +99,8 @@ jobs:
           echo "✅ All configurations are valid!"
 
   deploy:
-    needs: [detect-changes, validate-compose]
-    if: needs.detect-changes.outputs.changed-services != '' && github.event_name == 'push'
+    needs: [detect-changes, validate-compose, debug]
+    if: github.event_name == 'push' && needs.detect-changes.outputs.changed-services != '' && needs.detect-changes.outputs.changed-services != null && needs.validate-compose.result == 'success'
     runs-on: self-hosted
     steps:
       - uses: actions/checkout@v4
