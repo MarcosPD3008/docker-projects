@@ -1,5 +1,4 @@
 name: Deploy Docker Services
-
 on:
   push:
     branches: [ main, master ]
@@ -22,9 +21,9 @@ jobs:
       wiki: ${{ steps.changes.outputs.wiki }}
       minecraft: ${{ steps.changes.outputs.minecraft }}
       changed-services: ${{ steps.list-changes.outputs.services }}
+      has-changes: ${{ steps.list-changes.outputs.has-changes }}
     steps:
       - uses: actions/checkout@v4
-
       - uses: dorny/paths-filter@v2
         id: changes
         with:
@@ -39,7 +38,7 @@ jobs:
               - 'wiki/**'
             minecraft:
               - 'minecraft/**'
-
+      
       - name: List changed services
         id: list-changes
         run: |
@@ -49,9 +48,18 @@ jobs:
           [ "${{ steps.changes.outputs.sonarqube }}" == "true" ] && services="$services sonarqube"
           [ "${{ steps.changes.outputs.wiki }}" == "true" ] && services="$services wiki"
           [ "${{ steps.changes.outputs.minecraft }}" == "true" ] && services="$services minecraft"
-          services=$(echo "$services" | sed 's/^ *//') # Trim leading space
+          services=$(echo "$services" | sed 's/^ *//')
+          
+          # Set outputs
           echo "services=$services" >> $GITHUB_OUTPUT
-          echo "Changed services: '$services'"
+          
+          if [ -n "$services" ]; then
+            echo "has-changes=true" >> $GITHUB_OUTPUT
+            echo "✅ Changed services: '$services'"
+          else
+            echo "has-changes=false" >> $GITHUB_OUTPUT
+            echo "⚠️ No services changed"
+          fi
 
   debug:
     needs: detect-changes 
@@ -61,6 +69,7 @@ jobs:
       - name: Debug output
         run: |
           echo "Event name: ${{ github.event_name }}"
+          echo "Has changes: ${{ needs.detect-changes.outputs.has-changes }}"
           echo "Changed services: '${{ needs.detect-changes.outputs.changed-services }}'"
           echo "n8n: ${{ needs.detect-changes.outputs.n8n }}"
           echo "nextcloud: ${{ needs.detect-changes.outputs.nextcloud }}"
@@ -71,42 +80,59 @@ jobs:
   deploy:
     name: Deploy Changed Services
     needs: detect-changes
+    # Only run if there are actual changes
+    if: needs.detect-changes.outputs.has-changes == 'true'
     runs-on: self-hosted
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
-
+        
       - name: Deploy changed services
         run: |
           echo "🚀 Starting deployment of changed services..."
-
           changed_services="${{ needs.detect-changes.outputs.changed-services }}"
           echo "🔍 Services to deploy: $changed_services"
-
-          if [ -z "$changed_services" ]; then
-            echo "⚠️ No services changed. Skipping deployment."
-            exit 0
-          fi
-
+          
           for service in $changed_services; do
             echo ""
             echo "📦 Deploying $service..."
-            cd "$service" || { echo "❌ Failed to enter folder $service"; exit 1; }
-
+            
+            if [ ! -d "$service" ]; then
+              echo "❌ Directory $service not found!"
+              continue
+            fi
+            
+            cd "$service" || { echo "❌ Failed to enter directory $service"; exit 1; }
+            
+            # Check if docker-compose file exists
+            if [ ! -f "docker-compose.yml" ] && [ ! -f "docker-compose.yaml" ]; then
+              echo "❌ No docker-compose file found in $service"
+              cd ..
+              continue
+            fi
+            
             echo "📋 Current status:"
             docker compose ps || true
-
+            
             echo "🔄 Stopping $service..."
             docker compose down || true
-
+            
             echo "🚀 Starting $service..."
             docker compose up -d
-
+            
             echo "✅ $service deployment completed"
             docker compose ps
-
             cd ..
           done
-
+          
       - name: Show all running containers
         run: docker ps
+
+  no-changes:
+    name: No Changes Detected
+    needs: detect-changes
+    if: needs.detect-changes.outputs.has-changes == 'false'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Skip deployment
+        run: echo "⚠️ No services changed. Skipping deployment."
