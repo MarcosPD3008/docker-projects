@@ -1,5 +1,4 @@
 version: '3.8'  
-
 services:
   postgres:
     image: postgres:15
@@ -12,7 +11,7 @@ services:
     networks:
       - n8n-net
     restart: unless-stopped
-
+    
   redis:
     image: redis:7
     ports:
@@ -20,7 +19,7 @@ services:
     networks:
       - n8n-net
     restart: unless-stopped
-
+    
   n8n:
     image: n8nio/n8n
     ports:
@@ -36,14 +35,33 @@ services:
       - TZ=America/Santo_Domingo
       - REDIS_HOST=redis
       - REDIS_PORT=6379
+      # Enable community nodes
+      - N8N_COMMUNITY_PACKAGES_ENABLED=true
+      # Optional: Allow external modules
+      - NODE_FUNCTION_ALLOW_EXTERNAL=*
+      # Optional: Set execution mode
+      - EXECUTIONS_MODE=queue
+      - QUEUE_BULL_REDIS_HOST=redis
+      - QUEUE_BULL_REDIS_PORT=6379
     volumes:
       - n8n-data:/home/node/.n8n
+      # Mount custom nodes directory (optional)
+      - ./custom-nodes:/home/node/.n8n/custom
     networks: 
       - n8n-net
     depends_on:
       - postgres
       - redis
     restart: unless-stopped
+    # Install community nodes on startup
+    command: >
+      sh -c "
+        npm install -g n8n-nodes-google-firebase@latest || echo 'Firebase node install failed'
+        npm install -g @n8n/n8n-nodes-google@latest || echo 'Google nodes install failed'
+        npm install -g n8n-nodes-openai@latest || echo 'OpenAI node install failed'
+        npm install -g n8n-nodes-typeform@latest || echo 'Additional nodes install failed'
+        n8n start
+      "
 
 volumes:
   postgres-data:
@@ -52,5 +70,3 @@ volumes:
 networks:
   n8n-net:
     driver: bridge
-
-    
