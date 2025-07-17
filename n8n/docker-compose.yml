@@ -11,7 +11,7 @@ services:
     networks:
       - n8n-net
     restart: unless-stopped
-    
+
   redis:
     image: redis:7
     ports:
@@ -19,9 +19,9 @@ services:
     networks:
       - n8n-net
     restart: unless-stopped
-    
+
   n8n:
-    build: .
+    image: n8nio/n8n
     ports:
       - "5678:5678"
     environment:
@@ -35,20 +35,8 @@ services:
       - TZ=America/Santo_Domingo
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-      # Enable community nodes
-      - N8N_COMMUNITY_PACKAGES_ENABLED=true
-      # Fix permissions warning
-      - N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=true
-      # Optional: Allow external modules
-      - NODE_FUNCTION_ALLOW_EXTERNAL=*
-      # Optional: Set execution mode
-      - EXECUTIONS_MODE=queue
-      - QUEUE_BULL_REDIS_HOST=redis
-      - QUEUE_BULL_REDIS_PORT=6379
     volumes:
       - n8n-data:/home/node/.n8n
-      # Mount custom nodes directory (optional)
-      - ./custom-nodes:/home/node/.n8n/custom
     networks: 
       - n8n-net
     depends_on:
