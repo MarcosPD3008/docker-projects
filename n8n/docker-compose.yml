@@ -21,7 +21,7 @@ services:
     restart: unless-stopped
     
   n8n:
-    image: n8nio/n8n
+    build: .
     ports:
       - "5678:5678"
     environment:
@@ -55,21 +55,6 @@ services:
       - postgres
       - redis
     restart: unless-stopped
-    # Create initialization script
-    entrypoint: >
-      /bin/bash -c "
-        # Install community nodes
-        npm install -g n8n-nodes-google-firebase@latest 2>/dev/null || echo 'Firebase node install failed'
-        npm install -g @n8n/n8n-nodes-google@latest 2>/dev/null || echo 'Google nodes install failed'
-        npm install -g n8n-nodes-openai@latest 2>/dev/null || echo 'OpenAI node install failed'
-        
-        # Fix permissions
-        chown -R node:node /home/node/.n8n
-        chmod -R 755 /home/node/.n8n
-        
-        # Start n8n
-        exec su-exec node n8n start
-      "
 
 volumes:
   postgres-data:
