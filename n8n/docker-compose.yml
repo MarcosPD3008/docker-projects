@@ -37,6 +37,8 @@ services:
       - REDIS_PORT=6379
       # Enable community nodes
       - N8N_COMMUNITY_PACKAGES_ENABLED=true
+      # Fix permissions warning
+      - N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=true
       # Optional: Allow external modules
       - NODE_FUNCTION_ALLOW_EXTERNAL=*
       # Optional: Set execution mode
@@ -53,14 +55,20 @@ services:
       - postgres
       - redis
     restart: unless-stopped
-    # Install community nodes on startup
-    command: >
-      sh -c "
-        npm install -g n8n-nodes-google-firebase@latest || echo 'Firebase node install failed'
-        npm install -g @n8n/n8n-nodes-google@latest || echo 'Google nodes install failed'
-        npm install -g n8n-nodes-openai@latest || echo 'OpenAI node install failed'
-        npm install -g n8n-nodes-typeform@latest || echo 'Additional nodes install failed'
-        n8n start
+    # Create initialization script
+    entrypoint: >
+      /bin/bash -c "
+        # Install community nodes
+        npm install -g n8n-nodes-google-firebase@latest 2>/dev/null || echo 'Firebase node install failed'
+        npm install -g @n8n/n8n-nodes-google@latest 2>/dev/null || echo 'Google nodes install failed'
+        npm install -g n8n-nodes-openai@latest 2>/dev/null || echo 'OpenAI node install failed'
+        
+        # Fix permissions
+        chown -R node:node /home/node/.n8n
+        chmod -R 755 /home/node/.n8n
+        
+        # Start n8n
+        exec su-exec node n8n start
       "
 
 volumes:
