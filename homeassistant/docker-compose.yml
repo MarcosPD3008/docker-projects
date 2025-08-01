@@ -59,4 +59,4 @@ services:
 
 networks:
   hass-network:
-    driver: bridgefinal
+    driver: bridge
