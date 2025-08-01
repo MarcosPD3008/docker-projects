@@ -20,6 +20,7 @@ jobs:
       sonarqube: ${{ steps.changes.outputs.sonarqube }}
       wiki: ${{ steps.changes.outputs.wiki }}
       minecraft: ${{ steps.changes.outputs.minecraft }}
+      homeassistant: ${{ steps.changes.outputs.homeassistant }}
       changed-services: ${{ steps.list-changes.outputs.services }}
       has-changes: ${{ steps.list-changes.outputs.has-changes }}
     steps:
@@ -38,6 +39,8 @@ jobs:
               - 'wiki/**'
             minecraft:
               - 'minecraft/**'
+            homeassistant:
+              - 'homeassistant/**'
       
       - name: List changed services
         id: list-changes
@@ -48,6 +51,7 @@ jobs:
           [ "${{ steps.changes.outputs.sonarqube }}" == "true" ] && services="$services sonarqube"
           [ "${{ steps.changes.outputs.wiki }}" == "true" ] && services="$services wiki"
           [ "${{ steps.changes.outputs.minecraft }}" == "true" ] && services="$services minecraft"
+          [ "${{ steps.changes.outputs.homeassistant }}" == "true" ] && services="$services homeassistant"
           services=$(echo "$services" | sed 's/^ *//')
           
           # Set outputs
@@ -76,6 +80,7 @@ jobs:
           echo "sonarqube: ${{ needs.detect-changes.outputs.sonarqube }}"
           echo "wiki: ${{ needs.detect-changes.outputs.wiki }}"
           echo "minecraft: ${{ needs.detect-changes.outputs.minecraft }}"
+          echo "homeassistant: ${{ needs.detect-changes.outputs.homeassistant }}"
 
   deploy:
     name: Deploy Changed Services
