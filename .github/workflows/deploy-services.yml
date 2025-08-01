@@ -24,6 +24,7 @@ jobs:
       changed-services: ${{ steps.list-changes.outputs.services }}
       has-changes: ${{ steps.list-changes.outputs.has-changes }}
     steps:
+      
       - uses: actions/checkout@v4
       - uses: dorny/paths-filter@v2
         id: changes
@@ -89,6 +90,11 @@ jobs:
     if: needs.detect-changes.outputs.has-changes == 'true'
     runs-on: self-hosted
     steps:
+      - name: Fix permissions before checkout
+        run: |
+          sudo chown -R $USER:$USER ${{ github.workspace }} || true
+          sudo rm -rf ${{ github.workspace }}/*
+        
       - name: Checkout repo
         uses: actions/checkout@v4
         
