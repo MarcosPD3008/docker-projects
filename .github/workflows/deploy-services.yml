@@ -46,21 +46,11 @@ jobs:
       - name: List changed services
         id: list-changes
         run: |
-          services=""
-          [ "${{ steps.changes.outputs.n8n }}" == "true" ] && services="$services n8n"
-          [ "${{ steps.changes.outputs.nextcloud }}" == "true" ] && services="$services nextcloud"
-          [ "${{ steps.changes.outputs.sonarqube }}" == "true" ] && services="$services sonarqube"
-          [ "${{ steps.changes.outputs.wiki }}" == "true" ] && services="$services wiki"
-          [ "${{ steps.changes.outputs.minecraft }}" == "true" ] && services="$services minecraft"
-          [ "${{ steps.changes.outputs.homeassistant }}" == "true" ] && services="$services homeassistant"
-          services=$(echo "$services" | sed 's/^ *//')
-          
-          # Set outputs
+          services=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep 'docker-compose.yml\|docker-compose.yaml' | awk -F'/' '{print $1}' | sort | uniq)
           echo "services=$services" >> $GITHUB_OUTPUT
-          
           if [ -n "$services" ]; then
             echo "has-changes=true" >> $GITHUB_OUTPUT
-            echo "✅ Changed services: '$services'"
+            echo "✅ Changed services: $services"
           else
             echo "has-changes=false" >> $GITHUB_OUTPUT
             echo "⚠️ No services changed"
